@@ -1,0 +1,100 @@
+importPackage(Packages.de.elo.ix.jscript);
+
+function getDataIterator() {
+    try {
+        return new Packages.de.elo.ix.scripting.DynamicKeywordDataProvider(new DynKeywordListDatabaseQuery());
+    } finally {
+        log.info("getDataIterator");
+    }
+}
+
+function DynKeywordListDatabaseQuery() {
+    this._message = "";
+    this._title = "Class";
+    this.resultset = undefined;
+    this._statement = "select objshort, PK, NamaDebitur, objid from ListCovenant WHERE NamaDebitur like ? AND objshort like ? ORDER BY NamaDebitur, objshort ASC";
+    this._keyNames = ["JENISCOVENANT", "", "", "OBJIDCOVENANT"];
+    this._header = ["List Covenant", "PK", "Debitur", "ID"];
+}
+
+// GROUP
+DynKeywordListDatabaseQuery.prototype.open = function (ec, sord, keyName) {
+    var params = [];
+    var NAMADEBITUR = '';
+    var JENISCOVENANT = '';
+
+    if (this.getObjKeyValue(sord, "DEBITUR") != undefined) {
+        if (this.getObjKeyValue(sord, "DEBITUR")[0] != undefined) {
+            NAMADEBITUR = this.getObjKeyValue(sord, "DEBITUR")[0];
+        }
+    }
+
+    if (this.getObjKeyValue(sord, "JENISCOVENANT") != undefined) {
+        if (this.getObjKeyValue(sord, "JENISCOVENANT")[0] != undefined) {
+            JENISCOVENANT = this.getObjKeyValue(sord, "JENISCOVENANT")[0];
+        }
+    }
+
+    params.push("%" + NAMADEBITUR + "%");
+    params.push("%" + JENISCOVENANT + "%");
+
+    var database = new Packages.de.elo.ix.jscript.DBConnection("jdbc/Contelo");
+    this.index = 0;
+    this.resultSet = database.query(this._statement, params);
+};
+
+// MAP
+DynKeywordListDatabaseQuery.prototype.openMap = function (ec, map, keyName) {
+    var filter;
+    if (keyName == "IX_MAP_P1FACSTERR") {
+        filter = map.IX_MAP_P1FACSTERR;
+    }
+
+    var params = [];
+
+    if (filter) {
+        params.push("%" + filter.toUpperCase() + "%");
+    } else {
+        params.push("%");
+    }
+
+    var database = new Packages.de.elo.ix.jscript.DBConnection("jdbc/Contelo");
+    this.index = 0;
+    this.resultSet = database.query(this._statement, params);
+};
+
+DynKeywordListDatabaseQuery.prototype.getNextRow = function () {
+    var row = this.resultSet[this.index++];
+    if (row) {
+        return row.map(function (value) {
+            return value ? value.toString() : "";
+        });
+    }
+};
+
+DynKeywordListDatabaseQuery.prototype.close = function () {
+};
+
+DynKeywordListDatabaseQuery.prototype.getHeader = function () {
+    return this._header;
+};
+
+DynKeywordListDatabaseQuery.prototype.getKeyNames = function () {
+    return this._keyNames;
+};
+
+DynKeywordListDatabaseQuery.prototype.hasMoreRows = function () {
+    return (this.index < (this.resultSet.length));
+};
+
+DynKeywordListDatabaseQuery.prototype.getMessage = function () {
+    return this._message;
+};
+
+DynKeywordListDatabaseQuery.prototype.getTitle = function () {
+    return this._title;
+};
+
+DynKeywordListDatabaseQuery.prototype.getColumnProperties = function () {
+    return [{ "width-px": "100" }, { "width-px": "300" }];
+};
